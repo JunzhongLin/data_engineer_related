@@ -1,0 +1,71 @@
+version: "3.3"
+
+# make sure that docker machine has enough memory to run the cluster.
+# setting it up to 4GB seems to work.
+
+services:
+
+  cassandra1:
+    image: cassandra:latest
+    ports:
+      - 7000:7000
+      - 9042:9042
+    networks:
+      - default
+    volumes:
+      - cassandra_data_1:/var/lib/cassandra
+    environment:
+      - CASSANDRA_SEEDS=cassandra1,cassandra2
+      - CASSANDRA_CLUSTER_NAME=Sparkify_db
+      - CASSANDRA_PASSWORD_SEEDER=yes
+      - CASSANDRA_PASSWORD=cassandra
+      # By default, Cassandra autodetects the available host memory and takes as much as it can.
+      # Therefore, memory options are mandatory if multiple Cassandras are launched in the same node.
+      - MAX_HEAP_SIZE=1G
+      - HEAP_NEWSIZE=200M
+#      needed for setting up custom cluster name
+      - CASSANDRA_DC=se1
+      - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
+    healthcheck:
+      test: [ "CMD", "cqlsh", "-e", "describe keyspaces" ]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+#    restart: always
+
+
+  cassandra2:
+    image: cassandra:latest
+    ports:
+      - 7001:7000
+      - 9043:9042
+    networks:
+      - default
+    volumes:
+      - cassandra_data_2:/var/lib/cassandra
+    environment:
+      - CASSANDRA_SEEDS=cassandra1,cassandra2
+      - CASSANDRA_CLUSTER_NAME=Sparkify_db
+      - CASSANDRA_PASSWORD=cassandra
+      # By default, Cassandra autodetects the available host memory and takes as much as it can.
+      # Therefore, memory options are mandatory if multiple Cassandras are launched in the same node.
+      - MAX_HEAP_SIZE=1G
+      - HEAP_NEWSIZE=200M
+#      needed for setting up custom cluster name
+      - CASSANDRA_DC=se1
+      - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
+    healthcheck:
+      test: [ "CMD", "cqlsh", "-e", "describe keyspaces" ]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+    depends_on:
+      - cassandra1
+#    restart: always
+volumes:
+  cassandra_data_1:
+  cassandra_data_2:
+networks:
+  default:
+    # please create this network before composing
+    name: cassandra_network
